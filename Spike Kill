@@ -1,0 +1,45 @@
+local UserInputService = game:GetService("UserInputService")
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local Mouse = LocalPlayer:GetMouse()
+local PlayerList = Players:GetPlayers()
+local SpikeObject = nil
+
+UserInputService.InputBegan:Connect(function(input, processed)
+    if processed then return end
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        local Target = Mouse.Target
+
+        if Target and (Target.Name == "Spikes" or Target.Name == "Wooden Spikes") then
+            SpikeObject = Target
+        end
+    end
+end)
+
+while not SpikeObject do
+    task.wait()
+end
+
+if SpikeObject == nil then return end
+
+for Time = 1, 12, 1 do
+    if SpikeObject == nil then return end
+
+    local SpikeCFrame = SpikeObject.CFrame * CFrame.new(0, -1, 0)
+
+    for Index, Player in ipairs(PlayerList) do
+        if Player ~= LocalPlayer then
+            local PlayerCharacter = Player.Character
+            if PlayerCharacter then
+                local CharacterHumanoid = PlayerCharacter:FindFirstChildOfClass("Humanoid")
+
+                if CharacterHumanoid then
+                    CharacterHumanoid.Sit = false
+                    task.wait(0.02)
+                    PlayerCharacter:PivotTo(SpikeCFrame)
+                end
+            end
+        end
+    end
+    task.wait(0.7)
+end
