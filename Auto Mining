@@ -1,0 +1,15 @@
+local Adminium = workspace.Adminium
+local AdminiumPrompt = Adminium.ProximityPrompt
+
+while task.wait(AdminiumPrompt.HoldDuration / 2) do
+    game:GetService("ReplicatedStorage").Remotes.MineEvent:FireServer()
+
+    local player = game.Players.LocalPlayer
+    local character = player.Character
+    if character then
+        local distance = (character:GetPivot().Position - Adminium.Position).Magnitude
+        if distance >= AdminiumPrompt.MaxActivationDistance then
+            break
+        end
+    end
+end
