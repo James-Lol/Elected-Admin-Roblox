@@ -1,7 +1,13 @@
-Use these scripts for good and not bad!
+Use these scripts responsibly!
+[A] indicates Admin permission required
 
-Auto Mining - Will auto mine
-
-Custom Commands - Adds custom commands for your citizens like /btools for btools or /fly for fly
-
-Plot System - Makes it so when a player says /claim you will go into claim mode and when you press E you place the plot teleporter and Q for cancel. and /goto for player to go to theyre plot
+Available Commands:
+- Auto Mining - Automatically mines resources
+- Custom Commands [A] - custom commands for players
+  Examples: "/btools" for building tools, "/fly" for fly
+- Plot System [A] - Plot management system
+  - Players need say "/claim" to make you enter claim mode
+  - Press E to place plot teleporter
+  - Press Q to cancel
+  - "/goto" is to teleport to your plot
+- Edit All Signs - Modify all signs simultaneously
