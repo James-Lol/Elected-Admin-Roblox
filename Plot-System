@@ -1,0 +1,114 @@
+local UserInputService = game:GetService("UserInputService")
+local Players = game:GetService("Players")
+local Plots = {}
+local PlotBeingClaimed = false
+local TextChatService = game:GetService("TextChatService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local IsLegacyChat = TextChatService.ChatVersion == Enum.ChatVersion.LegacyChatService
+
+local function ClaimPlot(Player)
+    if PlotBeingClaimed then
+        return
+    end
+
+    PlotBeingClaimed = true
+
+    local connection
+
+    local character = Player.Character or Player.CharacterAdded:Wait()
+    local highlight = Instance.new("Highlight")
+    highlight.FillColor = Color3.new(0, 0, 1)
+    highlight.OutlineColor = Color3.new(0, 0, 1)
+    highlight.Parent = character
+
+    local camera = game.Workspace.CurrentCamera
+
+    local function claimPlotPosition()
+        local mousePosition = UserInputService:GetMouseLocation()
+        
+        local rayOrigin = camera:ScreenPointToRay(mousePosition.X, mousePosition.Y).Origin
+        local rayDirection = camera:ScreenPointToRay(mousePosition.X, mousePosition.Y).Direction * 1000
+
+        local raycastResult = game.Workspace:Raycast(rayOrigin, rayDirection)
+
+        if raycastResult and raycastResult.Normal then
+            local finalPosition = raycastResult.Position + raycastResult.Normal * 1.5
+
+            local DisplayBlock = Instance.new("Part")
+            DisplayBlock.Size = Vector3.new(3, 3, 3)
+            DisplayBlock.Position = finalPosition
+            DisplayBlock.Transparency = 0.5
+            DisplayBlock.Color = Color3.new(0, 0, 1)
+            DisplayBlock.Anchored = true
+            DisplayBlock.CanCollide = false
+            DisplayBlock.Parent = game.Workspace
+
+            Plots[Player.UserId] = finalPosition
+            print("Plot claimed at:", finalPosition)
+        else
+            print("No object hit by raycast.")
+        end
+
+        highlight:Destroy()
+        PlotBeingClaimed = false
+        connection:Disconnect()
+    end
+
+    local function cancelClaiming()
+        print("Plot claiming canceled.")
+        highlight:Destroy()
+        PlotBeingClaimed = false
+        connection:Disconnect()
+    end
+
+    connection = UserInputService.InputBegan:Connect(function(input, gameProcessed)
+        if gameProcessed then return end
+
+        if input.KeyCode == Enum.KeyCode.E then
+            claimPlotPosition()
+        elseif input.KeyCode == Enum.KeyCode.Q then
+            cancelClaiming()
+        end
+    end)
+end
+
+local function ChatMessage(Text)
+    Text = tostring(Text)
+    if IsLegacyChat == false then
+        TextChatService.TextChannels.RBXGeneral:SendAsync(Text)
+    else
+        ReplicatedStorage.DefaultChatSystemChatEvents.SayMessageRequest:FireServer(Text, "All")
+    end
+end
+
+local function GotoPlot(Player)
+    local plotPosition = Plots[Player.UserId]
+    if plotPosition then
+        local chatMessage = string.format(";Position %s %d,%d,%d", Player.Name, plotPosition.X, plotPosition.Y, plotPosition.Z)
+        ChatMessage(chatMessage)
+        
+        print(Player.Name .. " teleported to their plot.")
+    end
+end
+
+local function onPlayerChatted(Player, message)
+    if message:lower() == "/claim" then
+        ClaimPlot(Player)
+        print(Player.Name .. " has initiated the plot claiming process.")
+    elseif message:lower() == "/goto" then
+        GotoPlot(Player)
+    end
+end
+
+Players.PlayerAdded:Connect(function(Player)
+    Player.Chatted:Connect(function(message)
+        onPlayerChatted(Player, message)
+    end)
+end)
+
+for _, Player in ipairs(Players:GetPlayers()) do
+    Player.Chatted:Connect(function(message)
+        onPlayerChatted(Player, message)
+    end)
+end
