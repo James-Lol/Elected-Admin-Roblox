@@ -85,6 +85,7 @@ end
 local function GotoPlot(Player)
     local plotPosition = Plots[Player.UserId]
     if plotPosition then
+        plotPosition = plotPosition + Vector3.new(0,3,0)
         local chatMessage = string.format(";Position %s %d,%d,%d", Player.Name, plotPosition.X, plotPosition.Y, plotPosition.Z)
         ChatMessage(chatMessage)
         
