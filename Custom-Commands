@@ -1,0 +1,288 @@
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local TextChatService = game:GetService("TextChatService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local isLegacyChat = TextChatService.ChatVersion == Enum.ChatVersion.LegacyChatService
+
+local function ChatMessage(Text)
+    Text = tostring(Text)
+    if isLegacyChat == false then
+        TextChatService.TextChannels.RBXGeneral:SendAsync(Text)
+    else
+        ReplicatedStorage.DefaultChatSystemChatEvents.SayMessageRequest:FireServer(Text, "All")
+    end
+end
+
+local AdminPanel = {}
+AdminPanel.Prefix = "/"
+AdminPanel.BlacklistedPlayers = {}
+AdminPanel.PlayerCooldowns = {}
+
+-- Helper function to find players by partial name or display name
+local function findPlayer(nameSegment)
+    if not nameSegment then return nil end
+    
+    if nameSegment:lower() == "me" then
+        return {LocalPlayer}
+    elseif nameSegment:lower() == "all" then
+        return Players:GetPlayers()
+    elseif nameSegment:lower() == "random" then
+        local allPlayers = Players:GetPlayers()
+        local randomPlayer = allPlayers[math.random(1, #allPlayers)]
+        return {randomPlayer}
+    end
+    
+    local foundPlayers = {}
+    local searchTerm = nameSegment:lower()
+    
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player.Name:lower():find(searchTerm) then
+            table.insert(foundPlayers, player)
+        elseif player.DisplayName:lower():find(searchTerm) then
+            table.insert(foundPlayers, player)
+        end
+    end
+    
+    return #foundPlayers > 0 and foundPlayers or nil
+end
+
+-- Helper function to check if a player is blacklisted
+local function isPlayerBlacklisted(player)
+    for _, userId in ipairs(AdminPanel.BlacklistedPlayers) do
+        if userId == player.UserId then
+            return true
+        end
+    end
+    return false
+end
+
+-- Helper function to handle cooldowns
+local function isOnCooldown(player)
+    if player == LocalPlayer then return false end
+    
+    local lastUsage = AdminPanel.PlayerCooldowns[player.UserId]
+    if lastUsage then
+        local timeSinceLastUse = os.time() - lastUsage
+        if timeSinceLastUse < 3 then  -- 3 second cooldown
+            return true
+        end
+    end
+    return false
+end
+
+-- Helper function to set cooldown
+local function setCooldown(player)
+    if player ~= LocalPlayer then
+        AdminPanel.PlayerCooldowns[player.UserId] = os.time()
+    end
+end
+
+-- Helper function to split string and remove empty elements
+local function splitString(str)
+    local parts = {}
+    for part in str:gmatch("%S+") do
+        table.insert(parts, part)
+    end
+    return parts
+end
+
+-- Argument parser function
+local function parseArguments(msg, expectedArgs)
+    local args = {}
+    local words = splitString(msg)
+    local currentIndex = 2 -- Start after command name
+    
+    for i, argType in ipairs(expectedArgs) do
+        if argType == "Player" then
+            if words[currentIndex] then
+                args[i] = findPlayer(words[currentIndex])
+                currentIndex = currentIndex + 1
+            end
+        elseif argType == "Number" then
+            if words[currentIndex] then
+                args[i] = tonumber(words[currentIndex])
+                currentIndex = currentIndex + 1
+            end
+        elseif argType == "Text" then
+            if words[currentIndex] then
+                args[i] = words[currentIndex]
+                currentIndex = currentIndex + 1
+            end
+        elseif argType == "Text2" then
+            if words[currentIndex] then
+                local remainingWords = {}
+                for j = currentIndex, #words do
+                    table.insert(remainingWords, words[j])
+                end
+                args[i] = table.concat(remainingWords, " ")
+            end
+            break
+        end
+    end
+    return args
+end
+
+-- Command handlers
+local function BlacklistCommandFunction(players)
+    if not players then
+        print("Player not found!")
+        return
+    end
+    
+    for _, player in ipairs(players) do
+        -- Skip if trying to blacklist LocalPlayer
+        if player == LocalPlayer then
+            print("Cannot blacklist yourself!")
+            continue
+        end
+        
+        -- Check if player is already blacklisted
+        local alreadyBlacklisted = false
+        for _, userId in ipairs(AdminPanel.BlacklistedPlayers) do
+            if userId == player.UserId then
+                alreadyBlacklisted = true
+                break
+            end
+        end
+        
+        if not alreadyBlacklisted then
+            table.insert(AdminPanel.BlacklistedPlayers, player.UserId)
+            print(player.Name .. " has been blacklisted")
+        end
+    end
+end
+
+local function unBlacklistCommandFunction(players)
+    if not players then
+        print("Player not found!")
+        return
+    end
+    
+    for _, player in ipairs(players) do
+        for i, userId in ipairs(AdminPanel.BlacklistedPlayers) do
+            if userId == player.UserId then
+                table.remove(AdminPanel.BlacklistedPlayers, i)
+                print(player.Name .. " has been unblacklisted")
+                break
+            end
+        end
+    end
+end
+
+local function PrintBlacklist()
+    print("Blacklisted Players:")
+    for _, userId in ipairs(AdminPanel.BlacklistedPlayers) do
+        local player = Players:GetPlayerByUserId(userId)
+        if player then
+            print("- " .. player.Name)
+        end
+    end
+end
+
+-- Player commands
+AdminPanel.PlayersCommands = {
+    {CommandName = "fly", Function = function(player)
+        ChatMessage(";fly ".. player.Name)
+        print(player.Name .. " is now flying")
+    end},
+    {CommandName = "btools", Function = function(player)
+        ChatMessage(";btools ".. player.Name)
+        print(player.Name .. " received btools")
+    end},
+    {CommandName = "r6", Function = function(player)
+        ChatMessage(";r6 ".. player.Name)
+        print(player.Name .. " converted to R6")
+    end},
+    {CommandName = "report", Arguments = {"Player"}, Function = function(player, targetPlayers)
+        if not targetPlayers then
+            print("Player not found!")
+            return
+        end
+        
+        local targetPlayer = targetPlayers[1]
+        if not targetPlayer then
+            print("Player not found!")
+            return
+        end
+        
+        if LocalPlayer.Character and targetPlayer.Character then
+            LocalPlayer.Character:PivotTo(targetPlayer.Character:GetPivot())
+        end
+    end}
+}
+
+AdminPanel.OwnerCommands = {
+    {CommandName = "blacklist", Arguments = {"Player"}, Function = BlacklistCommandFunction},
+    {CommandName = "unblacklist", Arguments = {"Player"}, Function = unBlacklistCommandFunction},
+    {CommandName = "blacklistlist", Arguments = {}, Function = PrintBlacklist}
+}
+
+-- Command processor
+function AdminPanel.ProcessCommand(player, message)
+    if message:sub(1, 1) ~= AdminPanel.Prefix then return end
+    
+    -- Check cooldown
+    if isOnCooldown(player) then
+        print(player.Name .. " is on cooldown!")
+        return
+    end
+    
+    local commandText = message:sub(2)
+    local parts = splitString(commandText)
+    if #parts == 0 then return end
+    
+    local commandName = parts[1]:lower()
+    
+    if isPlayerBlacklisted(player) then
+        print(player.Name .. " is blacklisted and cannot use commands")
+        return
+    end
+    
+    for _, cmd in ipairs(AdminPanel.PlayersCommands) do
+        if cmd.CommandName == commandName then
+            if cmd.Arguments then
+                local args = parseArguments(commandText, cmd.Arguments)
+                cmd.Function(player, table.unpack(args))
+            else
+                cmd.Function(player)
+            end
+            setCooldown(player)
+            return
+        end
+    end
+    
+    if player == LocalPlayer then
+        for _, cmd in ipairs(AdminPanel.OwnerCommands) do
+            if cmd.CommandName == commandName then
+                if cmd.Arguments then
+                    local args = parseArguments(commandText, cmd.Arguments)
+                    cmd.Function(table.unpack(args))
+                else
+                    cmd.Function()
+                end
+                return
+            end
+        end
+    end
+end
+
+Players.PlayerRemoving:Connect(function(player)
+    AdminPanel.PlayerCooldowns[player.UserId] = nil
+end)
+
+local function setupPlayerChatListener(player)
+    player.Chatted:Connect(function(message)
+        AdminPanel.ProcessCommand(player, message)
+    end)
+end
+
+function AdminPanel.Init()
+    for _, player in ipairs(Players:GetPlayers()) do
+        setupPlayerChatListener(player)
+    end
+    
+    Players.PlayerAdded:Connect(setupPlayerChatListener)
+end
+
+AdminPanel.Init()
