@@ -2,7 +2,7 @@ Use these scripts responsibly!
 [A] indicates Admin permission required
 
 Available Commands:
-- Auto Mining - Automatically mines resources
+- Auto Mining - Automatically mines credits
 - Custom Commands [A] - custom commands for players
   Examples: "/btools" for building tools, "/fly" for fly
 - Plot System [A] - Plot management system
