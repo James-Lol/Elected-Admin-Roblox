@@ -1,0 +1,74 @@
+if game.Players.LocalPlayer:WaitForChild("PlayerGui"):FindFirstChild("TextEditGui") then return end
+
+local TextEditGui = Instance.new("ScreenGui")
+TextEditGui.Name = "TextEditGui"
+TextEditGui.IgnoreGuiInset = true
+TextEditGui.ResetOnSpawn = false
+TextEditGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+TextEditGui.DisplayOrder = 10
+TextEditGui.Enabled = true
+TextEditGui.SafeAreaCompatibility = Enum.SafeAreaCompatibility.FullscreenExtension
+TextEditGui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
+
+local TextBox = Instance.new("TextBox")
+TextBox.Name = "TextBox"
+TextBox.Position = UDim2.new(0.006, 0, 0.92, 0)
+TextBox.Size = UDim2.new(0.2, 0, 0.05, 0)
+TextBox.BackgroundColor3 = Color3.new(0.23, 0.24, 0.3)
+TextBox.BackgroundTransparency = 0
+TextBox.BorderSizePixel = 0
+TextBox.BorderColor3 = Color3.new(0, 0, 0)
+TextBox.Visible = true
+TextBox.ZIndex = 1
+TextBox.Rotation = 0
+TextBox.AnchorPoint = Vector2.new(0, 0)
+TextBox.AutomaticSize = Enum.AutomaticSize.None
+TextBox.ClipsDescendants = false
+TextBox.LayoutOrder = 0
+TextBox.Transparency = 0
+TextBox.Selectable = true
+TextBox.Active = true
+TextBox.Draggable = false
+TextBox.Text = ""
+TextBox.TextColor3 = Color3.new(1, 1, 1)
+TextBox.Font = Enum.Font.TitilliumWeb
+TextBox.TextScaled = true
+TextBox.TextWrapped = true
+TextBox.TextXAlignment = Enum.TextXAlignment.Center
+TextBox.TextYAlignment = Enum.TextYAlignment.Center
+TextBox.RichText = false
+TextBox.ClearTextOnFocus = true
+TextBox.MultiLine = false
+TextBox.PlaceholderText = "Enter text here"
+TextBox.PlaceholderColor3 = Color3.new(1, 1, 1)
+TextBox.ShowNativeInput = true
+TextBox.MaxVisibleGraphemes = -1
+TextBox.Parent = TextEditGui
+
+local UICorner = Instance.new("UICorner")
+UICorner.Name = "UICorner"
+UICorner.CornerRadius = UDim.new(0.1, 0)
+UICorner.Parent = TextBox
+
+local PlayerSigns = {}
+
+local function AddSign(Block)
+    if Block:GetAttribute("Builder") == game.Players.LocalPlayer.Name and Block.Name == "Sign" then
+        table.insert(PlayerSigns, Block)
+    end
+end
+
+for _, Block in ipairs(game.Workspace:GetChildren()) do
+    AddSign(Block)
+end
+
+game.Workspace.ChildAdded:Connect(function(Child)
+    AddSign(Child)
+end)
+
+TextBox:GetPropertyChangedSignal("Text"):Connect(function()
+    local InputText = TextBox.Text
+    for _, Block in ipairs(PlayerSigns) do
+        game:GetService("ReplicatedStorage").Remotes.EditSignEvent:FireServer(Block, InputText)
+    end
+end)
