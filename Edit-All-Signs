@@ -58,11 +58,11 @@ local function AddSign(Block)
     end
 end
 
-for _, Block in ipairs(game.Workspace:GetChildren()) do
+for _, Block in ipairs(game.Workspace.Blocks:GetChildren()) do
     AddSign(Block)
 end
 
-game.Workspace.ChildAdded:Connect(function(Child)
+game.Workspace.Blocks.ChildAdded:Connect(function(Child)
     AddSign(Child)
 end)
 
