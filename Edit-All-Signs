@@ -1,4 +1,15 @@
-if game.Players.LocalPlayer:WaitForChild("PlayerGui"):FindFirstChild("TextEditGui") then game.Players.LocalPlayer:WaitForChild("PlayerGui"):FindFirstChild("TextEditGui"):Destroy() end
+if game.Players.LocalPlayer:WaitForChild("PlayerGui"):FindFirstChild("TextEditGui") then
+    game.Players.LocalPlayer:WaitForChild("PlayerGui"):FindFirstChild("TextEditGui"):Destroy()
+end
+
+local SignTypes = {
+    "Sign",
+    "Wall Sign",
+    "Image Sign",
+    "Wall Image",
+    "Image Block",
+    "Speaker"
+}
 
 local TextEditGui = Instance.new("ScreenGui")
 TextEditGui.Name = "TextEditGui"
@@ -47,14 +58,19 @@ TextBox.Parent = TextEditGui
 
 local UICorner = Instance.new("UICorner")
 UICorner.Name = "UICorner"
-UICorner.CornerRadius = UDim.new(0.1, 0)
+UICorner.CornerRadius = UDim.new(0.2, 0)
 UICorner.Parent = TextBox
 
 local PlayerSigns = {}
 
 local function AddSign(Block)
-    if Block:GetAttribute("Builder") == game.Players.LocalPlayer.Name and Block.Name == "Sign" then
-        table.insert(PlayerSigns, Block)
+    if Block:GetAttribute("Builder") == game.Players.LocalPlayer.Name then
+        for _, signType in ipairs(SignTypes) do
+            if Block.Name == signType then
+                table.insert(PlayerSigns, Block)
+                break
+            end
+        end
     end
 end
 
