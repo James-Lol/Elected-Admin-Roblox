@@ -23,19 +23,29 @@ AdminPanel.PlayerCooldowns = {}
 local function findPlayer(nameSegment)
     if not nameSegment then return nil end
     
-    if nameSegment:lower() == "me" then
+    local searchTerm = nameSegment:lower()
+    
+    -- Handle special keywords
+    if searchTerm == "me" then
         return {LocalPlayer}
-    elseif nameSegment:lower() == "all" then
+    elseif searchTerm == "all" or searchTerm == "everyone" then
         return Players:GetPlayers()
-    elseif nameSegment:lower() == "random" then
+    elseif searchTerm == "other" or searchTerm == "others" then
+        local otherPlayers = {}
+        for _, player in ipairs(Players:GetPlayers()) do
+            if player ~= LocalPlayer then
+                table.insert(otherPlayers, player)
+            end
+        end
+        return otherPlayers
+    elseif searchTerm == "random" then
         local allPlayers = Players:GetPlayers()
         local randomPlayer = allPlayers[math.random(1, #allPlayers)]
         return {randomPlayer}
     end
     
+    -- Search for specific players
     local foundPlayers = {}
-    local searchTerm = nameSegment:lower()
-    
     for _, player in ipairs(Players:GetPlayers()) do
         if player.Name:lower():find(searchTerm) then
             table.insert(foundPlayers, player)
@@ -209,6 +219,14 @@ AdminPanel.PlayersCommands = {
         if LocalPlayer.Character and targetPlayer.Character then
             LocalPlayer.Character:PivotTo(targetPlayer.Character:GetPivot())
         end
+    end},
+     {CommandName = "size", Arguments = {"Number"}, Function = function(player,Number)
+        if not Number then return end
+        local size = tonumber(Number)
+        
+        size = math.clamp(size, 0.75, 1.75)
+        
+        ChatMessage(";size " .. player.Name .. " " .. size)
     end}
 }
 
