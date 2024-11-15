@@ -1,0 +1,110 @@
+local function FindNearbyBlock(TargetCFrame, SearchSize)
+    local OverlapParams = OverlapParams.new()
+    OverlapParams.FilterDescendantsInstances = {workspace.Blocks, workspace.TerrainBlocks}
+    OverlapParams.FilterType = Enum.RaycastFilterType.Include
+
+    local RegionParts = workspace:GetPartBoundsInBox(TargetCFrame, SearchSize, OverlapParams)
+    
+    for _, Part in ipairs(RegionParts) do
+        if Part.Parent == workspace.Blocks or Part:IsDescendantOf(workspace.TerrainBlocks) then
+            return Part
+        end
+    end
+end
+
+local function PlaceBlock(BlockCFrame, BlockType)
+
+    local SearchSize = Vector3.new(5,5,5)
+    local NearbyBlock = FindNearbyBlock(BlockCFrame, SearchSize)
+
+    if not NearbyBlock then
+        warn("No valid nearby block found.")
+        return nil
+    end
+
+    local ReplicatedStorage = game:GetService("ReplicatedStorage")
+    local BlockTemplate = ReplicatedStorage.Blocks:FindFirstChild(BlockType)
+    if not BlockTemplate then
+        warn("Block type does not exist in ReplicatedStorage.Blocks: " .. BlockType)
+        return nil
+    end
+
+    local Args = {
+        [1] = BlockCFrame,
+        [2] = BlockTemplate,
+        [3] = NearbyBlock
+    }
+
+    local Block = ReplicatedStorage.Remotes.BuildEvent:InvokeServer(unpack(Args))
+    return Block
+end
+
+local UserInputService = Game:GetService("UserInputService")
+
+local InputConnection
+
+local function RemoveScriptFromBTool()
+    if Game.Players.LocalPlayer.Character then
+        local Tool = Game.Players.LocalPlayer.Character:FindFirstChild("BuildingTool")
+        if Tool then
+            local BuildLocalScript = Tool:FindFirstChildOfClass("LocalScript")
+            if BuildLocalScript then
+                BuildLocalScript.Enabled = false
+            end
+        end
+    end
+end
+
+local function OnToolUnequipped(Tool)
+    if InputConnection then
+        InputConnection:Disconnect()
+        InputConnection = nil
+    end
+
+    if Tool then
+        local BuildLocalScript = Tool:FindFirstChildOfClass("LocalScript")
+        if BuildLocalScript then
+            BuildLocalScript.Enabled = true
+        end
+    end
+end
+
+local function OnInputBegan(Input, IsGameProcessed)
+    if not  InputConnection then return end
+    if Input.UserInputType ~= Enum.UserInputType.MouseButton1 then return end
+    if IsGameProcessed then return end
+
+    local Player = game.Players.LocalPlayer
+    local Camera = workspace.CurrentCamera
+    local MousePosition2D = UserInputService:GetMouseLocation()
+
+    local Ray = Camera:ScreenPointToRay(MousePosition2D.X, MousePosition2D.Y)
+    local RayParameters = RaycastParams.new()
+    RayParameters.FilterType = Enum.RaycastFilterType.Exclude
+    RayParameters.FilterDescendantsInstances = {Player.Character}
+
+    local RaycastResult = workspace:Raycast(Ray.Origin, Ray.Direction * 500, RayParameters)
+    if RaycastResult then
+        local HitPosition = RaycastResult.Position
+        local HitNormal = RaycastResult.Normal
+        local AdjustedPosition = HitPosition + (HitNormal * 1.5)
+
+        PlaceBlock(CFrame.new(AdjustedPosition), "Block")
+    end
+end
+
+local function SetupToolListeners()
+    InputConnection = UserInputService.InputBegan:Connect(OnInputBegan)
+    local Character = Game.Players.LocalPlayer.Character
+    if not Character then return end
+
+    local Tool = Character:FindFirstChild("BuildingTool")
+    if Tool then
+        Tool.Unequipped:Connect(function()
+            OnToolUnequipped(Tool)
+        end)
+    end
+end
+
+RemoveScriptFromBTool()
+SetupToolListeners()
