@@ -78,7 +78,7 @@ local function OnInputBegan(Input, IsGameProcessed)
     local Camera = workspace.CurrentCamera
     local MousePosition2D = UserInputService:GetMouseLocation()
 
-    local Ray = Camera:ScreenPointToRay(MousePosition2D.X, MousePosition2D.Y)
+    local Ray = Camera:ViewportPointToRay(MousePosition2D.X, MousePosition2D.Y)
     local RayParameters = RaycastParams.new()
     RayParameters.FilterType = Enum.RaycastFilterType.Exclude
     RayParameters.FilterDescendantsInstances = {Player.Character}
